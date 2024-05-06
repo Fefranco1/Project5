@@ -118,37 +118,39 @@
 ;; sketched up above. Specifically, you will convert everything to
 ;; direct-style applications of builtins, along with let, print, and
 ;; if.
-(define (ifarith->ifarith-tiny e)
+(define (arith-expr->arith-tiny e)
   (match e
     ;; literals
-    [(? integer? i) i]
-    ['true 'todo]
-    ['false 'todo]
-    [(? symbol? x) 'todo]
-    [`(,(? bop? bop) ,e0 ,e1) 'todo]
-    [`(,(? uop? uop) ,e) 'todo]
+    [(? number? n) n]
+    ['true e]
+    ['false e]
+    [(? symbol? x) x]
+    [`(,(? arith-op? op) ,e0 ,e1) `(,op ,(arith-expr->arith-tiny e0) ,(arith-expr->arith-tiny e1))]
+    [`(,(? unary-op? op) ,e) `(,op ,(arith-expr->arith-tiny e))]
     ;; 0-binding case
-    [`(let* () ,e) 'todo]
+    [`(let* () ,e) (arith-expr->arith-tiny e)]
     ;; 1+-binding case
     [`(let* ([,(? symbol? x0) ,e0]) ,e-body)
-     'todo]
+     `(let ([,x0 ,(arith-expr->arith-tiny e0)]) ,(arith-expr->arith-tiny e-body))]
     [`(let* ([,(? symbol? x0) ,e0] ,rest-binding-pairs ...) ,e-body)
-     'todo]
+     `(let ([,x0 ,(arith-expr->arith-tiny e0)])
+        ,(arith-expr->arith-tiny `(let* ,rest-binding-pairs ,e-body)))]
     ;; print an arbitrary expression (must be a number at runtime)
-    [`(print ,_)
-     'todo]
+    [`(print ,_) e]
     ;; and/or, with short-circuiting semantics
-    [`(and ,e0) 'todo]
-    [`(and ,e0 ,es ...) 'todo]
-    [`(or ,e0) 'todo]
-    [`(or ,e0 ,es ...) 'todo]
+    [`(and ,e0) (arith-expr->arith-tiny e0)]
+    [`(and ,e0 ,es ...) (arith-expr->arith-tiny `(if ,e0 (and ,@es) 0))]
+    [`(or ,e0) (arith-expr->arith-tiny e0)]
+    [`(or ,e0 ,es ...) (arith-expr->arith-tiny `(if ,e0 true (or ,es)))]
     ;; if argument is 0, false, otherwise true
-    [`(if ,e0 ,e1 ,e2) 'todo]
+    [`(if ,e0 ,e1 ,e2) `(if ,(arith-expr->arith-tiny e0)
+                            ,(arith-expr->arith-tiny e1)
+                            ,(arith-expr->arith-tiny e2))]
     ;; cond where the last case is else
-    [`(cond [else ,(? ifarith? else-body)])
-     'todo]
+    [`(cond [else ,(? arith-expr? else-body)])
+     (arith-expr->arith-tiny else-body)]
     [`(cond [,c0 ,e0] ,rest ...)
-     'todo]))
+     (arith-expr->arith-tiny `(if ,c0 ,e0 (cond ,@rest)))])))
 
 ;; Stage 3: Administrative Normal Form (ANF)
 ;; 
