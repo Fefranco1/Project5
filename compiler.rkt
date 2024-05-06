@@ -121,14 +121,14 @@
 (define (arith-expr->arith-tiny e)
   (match e
     ;; literals
-    [(? number? n) n]
+    [(? integer? i) i]
     ['true e]
     ['false e]
     [(? symbol? x) x]
-    [`(,(? arith-op? op) ,e0 ,e1) `(,op ,(arith-expr->arith-tiny e0) ,(arith-expr->arith-tiny e1))]
-    [`(,(? unary-op? op) ,e) `(,op ,(arith-expr->arith-tiny e))]
+    [`(,(? bop? bop) ,e0 ,e1) `(,bop ,(ifarith->ifarith-tiny e0) ,(ifarith->ifarith-tiny e1))]
+    [`(,(? uop? uop) ,e) `(,uop ,(ifarith->ifarith-tiny e))]
     ;; 0-binding case
-    [`(let* () ,e) (arith-expr->arith-tiny e)]
+    [`(let* () ,e) (ifarith->ifarith-tiny e)]
     ;; 1+-binding case
     [`(let* ([,(? symbol? x0) ,e0]) ,e-body)
      `(let ([,x0 ,(arith-expr->arith-tiny e0)]) ,(arith-expr->arith-tiny e-body))]
@@ -138,19 +138,19 @@
     ;; print an arbitrary expression (must be a number at runtime)
     [`(print ,_) e]
     ;; and/or, with short-circuiting semantics
-    [`(and ,e0) (arith-expr->arith-tiny e0)]
-    [`(and ,e0 ,es ...) (arith-expr->arith-tiny `(if ,e0 (and ,@es) 0))]
-    [`(or ,e0) (arith-expr->arith-tiny e0)]
-    [`(or ,e0 ,es ...) (arith-expr->arith-tiny `(if ,e0 true (or ,es)))]
+    [`(and ,e0) (ifarith->ifarith-tiny e0)]
+    [`(and ,e0 ,es ...) (ifarith->ifarith-tiny `(if ,e0 (and ,@es) 0))]
+    [`(or ,e0) (ifarith->ifarith-tiny e0)]
+    [`(or ,e0 ,es ...) (ifarith->ifarith-tiny `(if ,e0 true (or ,es)))]
     ;; if argument is 0, false, otherwise true
-    [`(if ,e0 ,e1 ,e2) `(if ,(arith-expr->arith-tiny e0)
-                            ,(arith-expr->arith-tiny e1)
-                            ,(arith-expr->arith-tiny e2))]
+    [`(if ,e0 ,e1 ,e2) `(if ,(ifarith->ifarith-tiny e0)
+                            ,(ifarith->ifarith-tiny e1)
+                            ,(ifarith->ifarith-tiny e2))]
     ;; cond where the last case is else
-    [`(cond [else ,(? arith-expr? else-body)])
-     (arith-expr->arith-tiny else-body)]
+    [`(cond [else ,(? ifarith? else-body)])
+     (ifarith->ifarith-tiny else-body)]
     [`(cond [,c0 ,e0] ,rest ...)
-     (arith-expr->arith-tiny `(if ,c0 ,e0 (cond ,@rest)))])))
+     (ifarith->ifarith-tiny `(if ,c0 ,e0 (cond ,@rest)))]))
 
 ;; Stage 3: Administrative Normal Form (ANF)
 ;; 
